@@ -1,5 +1,5 @@
 ### A Pluto.jl notebook ###
-# v0.20.16
+# v0.20.17
 
 using Markdown
 using InteractiveUtils
@@ -130,9 +130,20 @@ Throughout this worksheet, there'll be points to stop and think. Take notes on t
 
 a) How does changing the population size affect results? 
 
-b) What is the population size that (visually) is the most consistent with allele frequency changes seen in the experiment?  
+increasing population size:
+- adds more allele data points to the graph
+- appears to make the change in allele frequency over time smaller
+- also seems to shift the initial allele frequency to smaller values
+
+
+b) What is the population size that (visually) is the most consistent with allele frequency changes seen in the experiment? 
+
+Around 10^2.3
 
 c) At what point do you see some of the odd artifacts become replicated?
+
+When p0 is around 0.09
+
 """
 
 # ╔═╡ 365ddd14-8bd4-4e44-a2a0-767b6cb24982
@@ -157,7 +168,7 @@ Try to fill out the code below yourself, there should be helpful hints that pop 
 
 # ╔═╡ ad025dd9-41a2-4ae3-8e9d-8f7dd04ca626
 function mutation(p,μ)
-	next = missing #You only need to edit this line
+	next = p*(1-µ)+(1-p)*µ #You only need to edit this line
 	return(next)
 end
 
@@ -206,7 +217,11 @@ md"""
 
 a) What patterns do high mutation rates help explain?
 
+The high mutation rates help explain the data points along x=0 axis. An allele might not be present in the initial population, but after 60 generations, they get introduced to the population through mutations.
+
 b) What patterns are missing from mutation alone?
+
+Mutation doesn't account for population size, so in the data there are not a lot of high initial allele frequencies, but in the mutation model there are.
 
 """
 
@@ -236,7 +251,7 @@ Let's make a function that can modify the allele frequencies due to selection. J
 
 # ╔═╡ 98d5e5a3-f7fc-4d7a-9cea-6dbf9d23d074
 function sel(wAA,wAa,pAA,pAa)
-	next = missing #Edit this line
+	next = (pAA*wAA+((1/2)*pAa*wAa))/(1+(pAA*(wAA-1))+(pAa*(wAa-1))) #Edit this line
 	return(next)
 end
 
@@ -272,8 +287,8 @@ _s_ = $(@bind s NumberField(-0.5:0.01:0.5;default=0.0))
 
 # ╔═╡ 23ea68e3-0a30-4ac8-8380-962463ee8036
 	function dirsel(p,s)
-		pAA = missing #Fill this out based on HW expectation
-		pAa = missing #Fill this out based on HW expectation
+		pAA = p*p #Fill this out based on HW expectation
+		pAa = 2*p*(1-p) #Fill this out based on HW expectation
 		return(sel(1+2.0*s,1+s,pAA,pAa)) #
 	end
 
@@ -334,7 +349,11 @@ md"""
 
 a) What do you think happened in the Leu et al experiment? Is selection sufficient to explain the results?
 
+The data matches high mutation rates and no selection rates. Selection is not sufficient to explain these results.
+
 b) If not - what seems more likely given the experimental design: small population sizes, or really high mutation rates?
+
+High mutation rates
 
 """
 
@@ -353,7 +372,7 @@ end
 
 # ╔═╡ 63f18ac9-07ca-4b8a-b1ee-7656d7edf8af
 begin
-	yeast_data = CSV.read("data/yeast_sex_asex.csv",DataFrame)
+	yeast_data = CSV.read("/Users/caprinapugliese/Documents/School/Uconn/2024-26_Grad_School/2025-26_Year-2/popgen/PopGen25/PopGen25/notes/data/yeast_sex_asex.csv",DataFrame)
 	Δ_ps = reduce(vcat,[t_vs_tp1(yeast_data[x,9:33]) for x in 1:530])
 	data_plot = scatter(Δ_ps,xlabel=L"p_t",ylabel=L"|p_{t+60}-p_t|",c=:black,margin=5mm,label="data")
 end
@@ -371,7 +390,9 @@ function WrightFisher(N,p,t,μ,s;k=1) #Function definitions start by stating thi
     freqs[1]=p # The first value in this vector is the starting allele frequency.
     while generation<t
 		current=freqs[generation] #Retrieve the current frequency from vector
-		next = randomMating(current,N) #Modify it by random mating
+		selection=dirsel(current,s)
+		mut=mutation(selection,µ)
+		next = randomMating(mut,N) #Modify it by random mating
 		freqs[generation + 1] = next #Add it to the list
         generation += 1 #Go to next generation
     end #The above lines keep running over and over until generation = t
@@ -415,7 +436,7 @@ let
 		keep_working(md"It seems that your code is still broken.")
 	elseif result == 0.0
 		tip(md"The above plot probably looks the same. Don't forget that we need to modify the actual WrightFisher simulation code to include mutations. Before the `randomMating()` function gets called, allele frequencies need to be modified by your `mutation()` function.")
-	elseif result != 0.1
+	elseif isapprox(result,0.1)
 		tip(md"Seems like you've modified the simulations in an unexpected way. Ask for help!")
 	else
 		correct(md"Now changing the mutation rates should change allele frequencies in predictable ways")
@@ -1857,7 +1878,7 @@ version = "1.9.2+0"
 # ╟─7afaaf98-2de8-4797-8640-ed16b1aaef82
 # ╠═73433c15-1a58-4a71-91bc-9377ad739c0c
 # ╟─753e4dd1-9b35-480b-8585-b0910e946914
-# ╟─0a6aa8d1-8a6f-41c3-a308-d94992029056
+# ╠═0a6aa8d1-8a6f-41c3-a308-d94992029056
 # ╟─02173b6a-b3d5-4889-a328-89c32a37e5ad
 # ╟─7296bd84-3500-435e-9664-4a233bdabd82
 # ╟─2ac176bf-3e69-4dc9-a23e-a7febeae29cc
@@ -1865,12 +1886,12 @@ version = "1.9.2+0"
 # ╟─4164367a-c14f-4abc-a1ae-594942190041
 # ╟─286e23c0-42bb-4bdb-9b4d-696e76c64c4b
 # ╟─e378256a-b241-43b0-88eb-a6d3f7405e49
-# ╟─f61ae75a-f15f-4b13-a20a-0a334d088c8b
+# ╠═f61ae75a-f15f-4b13-a20a-0a334d088c8b
 # ╟─365ddd14-8bd4-4e44-a2a0-767b6cb24982
 # ╠═ad025dd9-41a2-4ae3-8e9d-8f7dd04ca626
 # ╟─09e306fa-c623-49fc-b670-3ce175c481db
 # ╟─c9e74853-606c-4331-a768-6cc3ca323b68
-# ╟─f2938983-93e3-4b88-a6c9-f95b2b26f212
+# ╠═f2938983-93e3-4b88-a6c9-f95b2b26f212
 # ╟─faa5e8b2-6dda-4a2c-ae4b-94c87b000da8
 # ╟─4177a8fc-4f0b-4b70-bbe2-048076e75ad8
 # ╟─0b659637-240a-4230-bd41-f270a8b6a6ad
@@ -1884,7 +1905,7 @@ version = "1.9.2+0"
 # ╠═23ea68e3-0a30-4ac8-8380-962463ee8036
 # ╟─a8d2c1d8-dcc7-48cc-9f06-2165d5a22702
 # ╟─a4dba1da-c1a5-4592-b4bd-daa42bdb16d3
-# ╟─07fc0006-5191-47e0-b564-1d5386aef2a6
+# ╠═07fc0006-5191-47e0-b564-1d5386aef2a6
 # ╟─9066836c-acd7-4bc9-9858-d357fce3d6da
 # ╟─f9b27432-f967-4d67-b9ce-040dfa1c262e
 # ╟─c974b118-fb72-4f36-8839-0a7973a1661d
